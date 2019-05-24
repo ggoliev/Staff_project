@@ -11,10 +11,9 @@ logger = logging.getLogger('sampleLogger')
 
 
 #  ---------------------------------------General constants-----------------------------------------------
-vvtool_output_folder = r'C:\Work\Amir'
-pattern_dump = r'.*\d\.dump'  # ROEI - I suggest to pre compile the RE, see:
-# https://stackoverflow.com/questions/452104/is-it-worth-using-pythons-re-compile
-pattern_robot_data = r'DataPos0.xml'  # ROEI - are you sure you want just this file and not all the DataPos files?
+vvtool_output_folder = r'C:\Work\Line_P1_D1_1_0'
+pattern_dump = re.compile(r'.*\d\.dump')
+pattern_robot_data = re.compile(r'DataPos0.xml')
 dumps_list: list = []
 # --------------------------------------------Constants for parsing----------------------------------------------------
 app_path = r'C:\Work\TestingWorkbench.exe'
@@ -35,21 +34,21 @@ def dumps_listing() -> list:
     logger.debug('Start adding .dump files to a list and deleting all the others')
     for subdir, dirs, files in os.walk(vvtool_output_folder, topdown=False):
         for file in files:
-            if re.match(pattern_dump, file):  # ROEI - are you sure its not adding _b files?
-                logger.debug(f'Added to dumps_list: {os.path.join(subdir, file)}')
+            if pattern_dump.match(file):
+                logger.debug(f'Match the {pattern_dump} pattern. Added to dumps_list: {os.path.join(subdir, file)}')
                 dumps_list.append(os.path.join(subdir, file))
-            elif re.match(pattern_robot_data, file):
-                pass
+            elif pattern_robot_data.match(file):
+                logger.debug(f'Match the {pattern_robot_data}. Pass.')
             else:
-                logger.debug(f'This file will be deleted: {file}')
+                logger.debug(f'File will be deleted: {file}')
                 os.remove(os.path.join(subdir, file))
-                logger.debug(f'File was deleted.')
+                logger.debug(f'Deleted file: {file}')
         try:  # ROEI - instead of try\catch I suggest to add check if the folder is empty (more readable code)
-            logger.debug(f'This folder will be deleted: {subdir}')
+            logger.debug(f'Folder will be deleted: {subdir}')
             os.rmdir(subdir)
-            logger.debug('Folder was deleted.')
+            logger.debug(f'Deleted folder: {subdir}')
         except OSError:
-            logger.debug(f'Can\'t delete this dir: {subdir}, may be it\'s not empty ')
+            logger.debug(f'Can\'t delete this folder: {subdir}, may be it\'s not empty ')
     return dumps_list  # ROEI - its global, you dont need to return it. I suggest to not use globals, create empty list
     # in the method and return it. the next method will get it as argument.
 
