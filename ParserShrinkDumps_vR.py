@@ -4,18 +4,24 @@ import subprocess
 import time
 import logging.config
 
-logging.config.fileConfig(fname=r'C:\Work\logging.config', disable_existing_loggers=False)
+
+os.system(f'title Now the ParserShrinkDumps_vR is running.')
+
+
+logging.config.fileConfig(fname=r'C:\Work\logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger('sampleLogger')
 # ToDo: turtle
 
+
 #  ---------------------------------------General constants-----------------------------------------------
-work_folder = r'C:\Work\Line_P1_D1_1_0'
+work_folder = r'C:\Work\M062'
 pattern_dump = re.compile(r'.*\d\.dump')
 pattern_robot_data = re.compile(r'DataPos0.xml')
 # --------------------------------------------Constants for parsing----------------------------------------------------
 app_path = r'C:\Work\TestingWorkbench.exe'
 raw_file = r'C:\Work\SFT_G5_HEAT_FW_CFG_Cambria.raw'
 bitmap = '0x8C8000000400001'
+bitmap_files_qty = 9
 
 
 def dumps_listing(vvtool_output_folder: str) -> list:
@@ -74,32 +80,31 @@ def run_testingworkbench(dump_file: str, output_folder: str, ) -> None:
 
 
 def count_files_in_folder(dump_path: str) -> None:  # ROEI - this method need to be called: validateFwOutput
-    """Check the quantity and size of all (dump and parsed) files in the folder with .dump file.
+    """Check the quantity and size of all (dump and parsed) files in the folder.
 
     The size of a file should be more than 1 kb, and the quantity of files should be
-    "quantity of parsed files with the specified bitmap + 1 dump file"
-    :param dump_path: path to folder with .dump file and parsed .csv files
+    "quantity of parsed files with the specified bitmap + 1 dump file".
+    os.scandir - get files size. os.walk - get files quantity.
+    :param dump_path: path to folder (with .dump file and parsed .csv files)
     :return: None
     """
     logger.debug(f'Start function with parameter {dump_path}')
-    output_folder = os.path.dirname(dump_path)
-    logger.debug(f'Output folder is {output_folder}')
 
-    with os.scandir(output_folder) as entries:
-        logger.debug(f'Folder {output_folder} contains:')
+    with os.scandir(dump_path) as entries:
         for entry in entries:
-            file_size = os.path.getsize(entry) / 1024  # ROEI - why 1024? please use constant
-            if file_size <= 1:
-                logger.warning(f'{entry.name: >{50}}, {file_size:.3f} KB. File is not parsed.')
-            else:
-                logger.debug(f'{entry.name: >{50}}, {file_size:.3f} KB. ')
+            if os.path.isfile(entry):
+                file_size = os.path.getsize(entry) / 1024  # ROEI - why 1024? please use constant
+                if file_size <= 1:
+                    logger.warning(f'{entry.name: >{50}}, {file_size:.3f} KB. File is not parsed.')
+                else:
+                    logger.debug(f'{entry.name: >{50}}, {file_size:.3f} KB. ')
+            elif os.path.isdir(entry):
+                logger.debug(f'{entry.name} is folder. It shouldn\'t be here!')
 
-    # ROei - isn't it the same loop as before?
-    path, dirs, files = next(os.walk(output_folder))
+    path, dirs, files = next(os.walk(dump_path))
     number_files_in_folder = (len(files))
-    if number_files_in_folder < 9:
-        logger.warning('Missing files!')
-    # Roie  consider doing it boolean method if the parsing failed
+    if number_files_in_folder < bitmap_files_qty + 1:
+        logger.warning(f'{number_files_in_folder} file(s) only! Should be {bitmap_files_qty + 1}.')
 
 
 def parse_shrink_recording() -> None:
@@ -116,7 +121,7 @@ def parse_shrink_recording() -> None:
         output_folder = os.path.dirname(dump)
         logger.debug(f'Parsed files will be saved in {output_folder} folder.')
         run_testingworkbench(dump, output_folder)
-        count_files_in_folder(dump)
+        count_files_in_folder(output_folder)
 
 
 start_time = time.time()
